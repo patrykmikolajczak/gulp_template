@@ -10,7 +10,9 @@ var gulp = require('gulp'),
     imagemin = require('gulp-imagemin'),
     pngquant = require('imagemin-pngquant'),
     rimraf = require('rimraf'),
-    browserSync = require('browser-sync').create();
+    browserSync = require('browser-sync').create(),
+    uglify      = require('gulp-uglify'),
+    reload      = browserSync.reload;
 
 var path = {
     dist: {
@@ -46,20 +48,27 @@ gulp.task('pug:build', function () {
 });
 
 gulp.task('js:build', function () {
-    gulp.src(path.source.js)
+    gulp.src([
+        'node_modules/jquery/dist/jquery.js',
+        'node_modules/bootstrap/dist/js/bootstrap.js',
+        path.source.js
+    ])
+        // .pipe(uglify())
         .pipe(gulp.dest(path.dist.js));
 });
 
 gulp.task('scss:build', function () {
     gulp.src(path.source.scss+'*.scss')
         .pipe(scss({
-      includePaths: ['node_modules/bootstrap/scss/']
-    }).on('error', scss.logError))
+            includePaths: ['node_modules/bootstrap/scss/']
+        }).on('error', scss.logError))
         .pipe(prefixer('last 2 versions'))
         .pipe(gulp.dest(path.dist.css))
         .pipe(cssmin())
         .pipe(rename({suffix: '.min'}))
         .pipe(gulp.dest(path.dist.css+'min/'));
+    gulp.src(path.source.scss+'*.css')
+        .pipe(gulp.dest(path.dist.css));
 });
 
 gulp.task('image:build', function () {
@@ -107,26 +116,35 @@ gulp.task('watch', function(){
     watch([path.watch.js], function(event, cb) {
         gulp.start('js:build');
     });
-    // watch([path.watch.libs], function(event, cb) {
-    //     gulp.start('libs:build');
-    // });
     watch([path.watch.img], function(event, cb) {
         gulp.start('image:build');
     });
     watch([path.watch.fonts], function(event, cb) {
         gulp.start('fonts:build');
     });
-    // watch([path.watch.data], function(event, cb) {
-    //     gulp.start('data:build');
-    // });
 });
 
-gulp.task('serve', ['build'], function() {
+gulp.task('serve', ['build', 'watch'], function() {
     browserSync.init({
         server: {
             baseDir: "dist/"
         }
     });
+    watch([path.watch.pug], function(event, cb) {
+        gulp.start('pug:build');
+    }).on("change", reload);
+    watch([path.watch.scss], function(event, cb) {
+        gulp.start('scss:build');
+    }).on("change", reload);
+    watch([path.watch.js], function(event, cb) {
+        gulp.start('js:build');
+    }).on("change", reload);
+    watch([path.watch.img], function(event, cb) {
+        gulp.start('image:build');
+    }).on("change", reload);
+    watch([path.watch.fonts], function(event, cb) {
+        gulp.start('fonts:build');
+    }).on("change", reload);
 });
 
 gulp.task('default', ['build', 'watch']);

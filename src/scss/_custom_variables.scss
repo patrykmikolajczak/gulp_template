@@ -1,0 +1,20 @@
+// tutaj definiuj zmienne i modyfikuj domyślne wartości bootstrap
+// proponuję żeby twoje zmienne zaczynały się od gt_ (gulp template) żeby nie nadpisywać zmiennych bootstrap
+
+// zmienne wstawione tutaj są domyślinymi z pliku variables.scss bootstrap
+// wstaw własne żeby zmienić wygląd aplikacji
+$colors: (
+    blue:       $blue,
+    indigo:     $indigo,
+    purple:     $purple,
+    pink:       $pink,
+    red:        $red,
+    orange:     $orange,
+    yellow:     $yellow,
+    green:      $green,
+    teal:       $teal,
+    cyan:       $cyan,
+    white:      $white,
+    gray:       $gray-600,
+    gray-dark:  $gray-800
+);
