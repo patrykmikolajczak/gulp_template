@@ -1,22 +1,16 @@
 'use strict';
 
-var gulp = require('gulp'),
-    watch = require('gulp-watch'),
-    prefixer = require('gulp-autoprefixer'),
-    scss = require('gulp-sass'),
-    cssmin = require('gulp-cssmin'),
-    rename = require('gulp-rename'),
-    pug = require('gulp-pug'),
-    imagemin = require('gulp-imagemin'),
-    pngquant = require('imagemin-pngquant'),
-    rimraf = require('rimraf'),
-    browserSync = require('browser-sync').create(),
-    uglify      = require('gulp-uglify'),
-    reload      = browserSync.reload;
+const gulp = require('gulp');
+const prefixer = require('gulp-autoprefixer');
+const gulpScss = require('gulp-sass');
+const cssmin = require('gulp-cssmin');
+const rename = require('gulp-rename');
+const imagemin = require('gulp-imagemin');
+const pngquant = require('imagemin-pngquant');
+const browsersync = require('browser-sync').create();
 
 var path = {
     dist: {
-        html: 'dist/',
         js: 'dist/js/',
         css: 'dist/css/',
         img: 'dist/img/',
@@ -24,7 +18,6 @@ var path = {
         other: 'dist/'
     },
     source: {
-        pug: 'src/pug/*.pug',
         js: 'src/js/**/*.js',
         scss: 'src/scss/',
         img: 'src/img/**/*.*',
@@ -32,7 +25,6 @@ var path = {
         other: 'src/*.*'
     },
     watch: {
-        pug: 'src/pug/**/*.*',
         js: 'src/js/**/*.js',
         scss: 'src/scss/**/*.*',
         img: 'src/img/**/*.*',
@@ -41,110 +33,88 @@ var path = {
     }
 };
 
-gulp.task('pug:build', function () {
-    gulp.src(path.source.pug)
-        .pipe(pug({ pretty: true, locals: { metrika: false } }))
-        .pipe(gulp.dest(path.dist.html));
-});
 
-gulp.task('js:build', function () {
-    gulp.src([
-        'node_modules/jquery/dist/jquery.js',
-        'node_modules/bootstrap/dist/js/bootstrap.js',
+function js() {
+    return gulp.src([
+        'node_modules/jquery/dist/jquery.min.js',
+        'node_modules/bootstrap/dist/js/bootstrap.min.js',
         path.source.js
     ])
-        // .pipe(uglify())
-        .pipe(gulp.dest(path.dist.js));
-});
+        .pipe(gulp.dest(path.dist.js))
+        .pipe(browsersync.stream())
+};
 
-gulp.task('scss:build', function () {
-    gulp.src(path.source.scss+'*.scss')
-        .pipe(scss({
+function scss() {
+    return gulp.src(path.source.scss)
+        .pipe(gulpScss({
             includePaths: ['node_modules/bootstrap/scss/']
-        }).on('error', scss.logError))
+        }).on('error', gulpScss.logError))
         .pipe(prefixer('last 2 versions'))
         .pipe(gulp.dest(path.dist.css))
         .pipe(cssmin())
         .pipe(rename({suffix: '.min'}))
-        .pipe(gulp.dest(path.dist.css+'min/'));
-    gulp.src(path.source.scss+'*.css')
-        .pipe(gulp.dest(path.dist.css));
-});
+        .pipe(gulp.dest(path.dist.css))
+        .pipe(gulp.src(path.source.scss+'*.css'))
+        .pipe(gulp.dest(path.dist.css))
+        .pipe(browsersync.stream())
+};
 
-gulp.task('image:build', function () {
-    gulp.src(path.source.img)
-        .pipe(imagemin({
-            progressive: true,
-            svgoPlugins: [{removeViewBox: false}],
-            use: [pngquant()],
-            interlaced: true
-        }))
-        .pipe(gulp.dest(path.dist.img));
-});
+function image() {
+    return gulp.src(path.source.img)
+        .pipe(imagemin([
+            imagemin.mozjpeg({quality: 75, progressive: true}),
+            imagemin.optipng({
+                progressive: true,
+                svgoPlugins: [{removeViewBox: false}],
+                use: [pngquant()],
+                interlaced: true
+            })
+        ]))
+        .pipe(gulp.dest(path.dist.img))
+        .pipe(browsersync.stream())
+};
 
-gulp.task('fonts:build', function() {
-    gulp.src(path.source.fonts)
-        .pipe(gulp.dest(path.dist.fonts));
-});
+function fonts() {
+    return gulp.src(path.source.fonts)
+        .pipe(gulp.dest(path.dist.fonts))
+        .pipe(browsersync.stream())
+};
 
-gulp.task('other:build', function() {
-    gulp.src(path.source.other)
-        .pipe(gulp.dest(path.dist.other));
-});
+function other() {
+    return gulp.src(path.source.other)
+        .pipe(gulp.dest(path.dist.other))
+        .pipe(browsersync.stream())
+};
 
-
-gulp.task('clean', function (cb) {
-    rimraf('./dist', cb);
-});
-
-gulp.task('build', [
-    'js:build',
-    'scss:build',
-    'fonts:build',
-    'image:build',
-    'pug:build',
-    'other:build'
-]);
-
-gulp.task('watch', function(){
-    watch([path.watch.pug], function(event, cb) {
-        gulp.start('pug:build');
+function browserSync(done) {
+    browsersync.init({
+      server: {
+        baseDir: './dist/',
+      },
+      port: 3000,
     });
-    watch([path.watch.scss], function(event, cb) {
-        gulp.start('scss:build');
-    });
-    watch([path.watch.js], function(event, cb) {
-        gulp.start('js:build');
-    });
-    watch([path.watch.img], function(event, cb) {
-        gulp.start('image:build');
-    });
-    watch([path.watch.fonts], function(event, cb) {
-        gulp.start('fonts:build');
-    });
-});
+    done();
+}
 
-gulp.task('serve', ['build', 'watch'], function() {
-    browserSync.init({
-        server: {
-            baseDir: "dist/"
-        }
-    });
-    watch([path.watch.pug], function(event, cb) {
-        gulp.start('pug:build');
-    }).on("change", reload);
-    watch([path.watch.scss], function(event, cb) {
-        gulp.start('scss:build');
-    }).on("change", reload);
-    watch([path.watch.js], function(event, cb) {
-        gulp.start('js:build');
-    }).on("change", reload);
-    watch([path.watch.img], function(event, cb) {
-        gulp.start('image:build');
-    }).on("change", reload);
-    watch([path.watch.fonts], function(event, cb) {
-        gulp.start('fonts:build');
-    }).on("change", reload);
-});
+function watchFiles() {
+    gulp.watch(path.watch.scss, scss);
+    gulp.watch(path.watch.js, js);
+    gulp.watch(path.watch.img, image);
+    gulp.watch(path.watch.fonts, fonts);
+    gulp.watch(path.watch.other, other);
+}
 
-gulp.task('default', ['build', 'watch']);
+const build = gulp.series(
+    js,
+    scss,
+    fonts,
+    image,
+    other
+);
+
+const serve = gulp.series(build, gulp.parallel(watchFiles, browserSync));
+
+exports.image = image;
+exports.serve = serve;
+exports.build = build;
+exports.default = serve;
